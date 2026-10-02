@@ -20,6 +20,11 @@ so you can read its completion message. All pause and stop controls still apply.
 Run `setup.bat`, then `start_app.bat 5` for five minutes.
 Setup stays open on both success and failure and saves diagnostics in
 `setup.log`. If Python is missing, it displays installation instructions.
+Setup explicitly tries Python 3.11, then 3.12, 3.13, and 3.14 through the
+Windows Python launcher before checking its generic Python 3 choice and PATH.
+This works even when your default Python is 3.8. Install 3.11 alongside 3.8
+with the Python launcher included; no PATH or default-Python change is needed.
+The chosen interpreter is used only to create this app's `.venv`.
 Use `start_app.bat 60` for sixty minutes, or `start_app.bat` with no duration
 to run indefinitely until you stop it. Minutes can be fractional, such as
 `start_app.bat 0.5` for thirty seconds. Zero, negative, and nonfinite durations

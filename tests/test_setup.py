@@ -44,6 +44,18 @@ class SetupChecks(unittest.TestCase):
                       (self.folder / 'setup.log').read_text())
         self.assertFalse((self.folder / '.venv').exists())
 
+    def test_explicit_311_is_selected_without_using_default_python(self):
+        (self.folder / 'py.cmd').write_text(
+            '@echo off\nif "%~1"=="-3.11" if "%~2"=="-c" exit /b 0\n'
+            'echo SELECTED %*\nexit /b 1\n')
+        (self.folder / 'python.cmd').write_text('@echo off\necho WRONG_DEFAULT\nexit /b 1\n')
+        self.env['PATH'] = str(self.folder)
+        result = self.setup()
+        self.assertEqual(result.returncode, 1)  # Stub deliberately fails venv creation.
+        log = (self.folder / 'setup.log').read_text()
+        self.assertIn('SELECTED -3.11 -m venv .venv', log)
+        self.assertNotIn('WRONG_DEFAULT', log)
+
     def test_double_click_failure_waits_for_user(self):
         result = self.setup(pause=True)
         self.assertEqual(result.returncode, 1)

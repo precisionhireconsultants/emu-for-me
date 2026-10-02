@@ -23,22 +23,32 @@ if not exist "requirements.txt" (
     echo ERROR: requirements.txt is missing. Extract the entire app ZIP first.
     exit /b 1
 )
-py -3 -c "import sys; assert sys.version_info >= (3, 11)" >nul 2>&1
+for %%V in (3.11 3.12 3.13 3.14) do (
+    call py -%%V -c "import sys; assert sys.version_info >= (3, 11)" >nul 2>&1
+    if not errorlevel 1 (
+        set "taskPythonTag=-%%V"
+        goto use_launcher
+    )
+)
+set "taskPythonTag=-3"
+call py -3 -c "import sys; assert sys.version_info >= (3, 11)" >nul 2>&1
 if not errorlevel 1 goto use_launcher
-python -c "import sys; assert sys.version_info >= (3, 11)" >nul 2>&1
+call python -c "import sys; assert sys.version_info >= (3, 11)" >nul 2>&1
 if not errorlevel 1 goto use_python
 echo ERROR: Python 3.11 or newer was not found.
 echo Install Python for Windows from https://www.python.org/downloads/windows/
-echo Enable Add Python to PATH during installation, then run setup.bat again.
+echo Include the Python launcher. You can leave your Python 3.8 PATH unchanged.
+echo Then run setup.bat again. Setup selects the newer version just for this app.
 exit /b 1
 
 :use_launcher
-py -3 -m venv .venv
+echo Using Python launcher version %taskPythonTag% for this app.
+call py %taskPythonTag% -m venv .venv
 if errorlevel 1 goto venv_failed
 goto dependencies
 
 :use_python
-python -m venv .venv
+call python -m venv .venv
 if errorlevel 1 goto venv_failed
 goto dependencies
 
