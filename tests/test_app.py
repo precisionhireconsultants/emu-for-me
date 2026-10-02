@@ -9,6 +9,10 @@ import activity_app as app
 
 
 class Checks(unittest.TestCase):
+    def test_virtual_coordinates_include_negative_monitor_positions(self):
+        self.assertEqual(app.normalize_point(-1920, 0, -1920, 0, 3840, 1080), (0, 0))
+        self.assertEqual(app.normalize_point(1919, 1079, -1920, 0, 3840, 1080), (65535, 65535))
+
     def chord(self, monitor, message, keys=(0xA2, 0xA4, 0x53, 0x41), flags=0):
         for key in keys:
             monitor.keyboard_filter(message, SimpleNamespace(flags=flags, vkCode=key))

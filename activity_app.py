@@ -5,6 +5,7 @@ import json
 import math
 import random
 import time
+import sys
 from contextlib import nullcontext
 from pathlib import Path
 
@@ -22,6 +23,42 @@ DEFAULT_CONFIG = {
 }
 KEYS = list('034589abcduvwxyz')
 WEIGHTS = [1, .5, .5, .5, .5, .5, 8.2, 1.5, 2.8, 4.3, 2.8, 1, 2.4, .15, 2, .07]
+
+
+def app_directory():
+    return Path(sys.executable).parent if getattr(sys, 'frozen', False) else Path(__file__).parent
+
+
+def enable_windows_dpi_awareness():
+    import ctypes
+    try:
+        ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
+    except AttributeError:
+        ctypes.windll.user32.SetProcessDPIAware()
+
+
+def monitor_bounds(x, y):
+    """Keep movement on the monitor containing the pointer, including negative coordinates."""
+    import ctypes
+    from ctypes import wintypes
+    class MonitorInfo(ctypes.Structure):
+        _fields_ = [('size', wintypes.DWORD), ('monitor', wintypes.RECT),
+                    ('work', wintypes.RECT), ('flags', wintypes.DWORD)]
+    user32 = ctypes.windll.user32
+    user32.MonitorFromPoint.argtypes = [wintypes.POINT, wintypes.DWORD]
+    user32.MonitorFromPoint.restype = wintypes.HANDLE
+    user32.GetMonitorInfoW.argtypes = [wintypes.HANDLE, ctypes.POINTER(MonitorInfo)]
+    info = MonitorInfo()
+    info.size = ctypes.sizeof(info)
+    handle = user32.MonitorFromPoint(wintypes.POINT(int(x), int(y)), 2)
+    if not user32.GetMonitorInfoW(handle, ctypes.byref(info)):
+        raise RuntimeError('Unable to determine monitor bounds')
+    return info.monitor.left, info.monitor.top, info.monitor.right, info.monitor.bottom
+
+
+def normalize_point(x, y, left, top, width, height):
+    return (round((x - left) * 65535 / max(1, width - 1)),
+            round((y - top) * 65535 / max(1, height - 1)))
 
 
 def load_config(path):
@@ -114,12 +151,12 @@ def run(config, minutes, backend=None, dry_run=False, monitor=None):
             if interrupted():
                 continue
             if action == 'mouse':
-                width, height = backend.size()
                 x, y = backend.position()
+                left, top, right, bottom = monitor_bounds(x, y)
                 angle = random.uniform(0, 2 * math.pi)
                 distance = random.randint(100, 300)
-                target_x = max(1, min(width - 2, x + distance * math.cos(angle)))
-                target_y = max(1, min(height - 2, y + distance * math.sin(angle)))
+                target_x = max(left + 1, min(right - 2, x + distance * math.cos(angle)))
+                target_y = max(top + 1, min(bottom - 2, y + distance * math.sin(angle)))
                 for step in range(1, 16):
                     if interrupted():
                         break
@@ -128,9 +165,12 @@ def run(config, minutes, backend=None, dry_run=False, monitor=None):
                     # SetCursorPos is not marked as injected. Use synthetic
                     # Windows mouse events so our listener ignores our moves.
                     import ctypes
-                    ctypes.windll.user32.mouse_event(0x8001,
-                        int((x + (target_x - x) * progress) * 65535 / (width - 1)),
-                        int((y + (target_y - y) * progress) * 65535 / (height - 1)), 0, 0)
+                    user32 = ctypes.windll.user32
+                    nx, ny = normalize_point(x + (target_x - x) * progress,
+                        y + (target_y - y) * progress,
+                        user32.GetSystemMetrics(76), user32.GetSystemMetrics(77),
+                        user32.GetSystemMetrics(78), user32.GetSystemMetrics(79))
+                    user32.mouse_event(0xC001, nx, ny, 0, 0)
                     pause(.02)
             elif action == 'keyboard' and random.random() < config[action]['key_press_probability']:
                 for _ in range(random.randint(config[action]['min_keys_per_burst'], config[action]['max_keys_per_burst'])):
@@ -156,8 +196,9 @@ def run(config, minutes, backend=None, dry_run=False, monitor=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('minutes', type=float, nargs='?', default=5)
-    parser.add_argument('--config', type=Path, default=Path(__file__).with_name('config.json'))
+    parser.add_argument('--config', type=Path, default=app_directory() / 'config.json')
     parser.add_argument('--dry-run', action='store_true', help='Log actions without desktop input')
+    parser.add_argument('--verify-input', action='store_true', help='Observe pause/hotkey/lock behavior without sending input')
     args = parser.parse_args()
     if not math.isfinite(args.minutes) or args.minutes <= 0:
         parser.error('minutes must be a positive finite number')
@@ -166,17 +207,34 @@ def main():
     except (ValueError, OSError) as exc:
         parser.error(str(exc))
     backend = None
-    if not args.dry_run:
+    if (not args.dry_run or args.verify_input) and sys.platform != 'win32':
+        parser.error('Live simulation and input verification require Windows')
+    if not args.dry_run or args.verify_input:
+        enable_windows_dpi_awareness()
+    if not args.dry_run and not args.verify_input:
         import pyautogui as backend
         backend.FAILSAFE = True
         backend.PAUSE = 0
     try:
         from user_activity import UserActivity
         settings = config['user_activity']
-        context = UserActivity(settings['resume_after_idle_seconds']) if settings['enabled'] and not args.dry_run else nullcontext(None)
+        context = UserActivity(settings['resume_after_idle_seconds']) if args.verify_input or (settings['enabled'] and not args.dry_run) else nullcontext(None)
         with context as monitor:
             print('Stop: Ctrl+C in this console, or close its window. Pause/resume: Ctrl+Alt+S+A.', flush=True)
-            run(config, args.minutes, backend, args.dry_run, monitor)
+            if args.verify_input:
+                print('Verification only: no simulated input. Type/move, try the hotkey twice, then lock/unlock Windows.', flush=True)
+                end = time.monotonic() + args.minutes * 60
+                previous = None
+                while time.monotonic() < end:
+                    monitor.check()
+                    busy = monitor.busy()
+                    state = (busy, monitor.manual_paused, monitor.desktop_available)
+                    if state != previous:
+                        print(f'paused={busy} manual_pause={state[1]} desktop_available={state[2]}', flush=True)
+                        previous = state
+                    time.sleep(.02)
+            else:
+                run(config, args.minutes, backend, args.dry_run, monitor)
     except KeyboardInterrupt:
         print('Stopped.')
     except Exception as exc:
