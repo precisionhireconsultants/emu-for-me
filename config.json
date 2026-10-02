@@ -1,0 +1,33 @@
+{
+  "activity": {
+    "min_delay_seconds": 2,
+    "max_delay_seconds": 8,
+    "burst_duration_minutes": 3,
+    "quiet_duration_seconds": 60
+  },
+  "mouse": {
+    "enabled": true
+  },
+  "keyboard": {
+    "enabled": false,
+    "key_press_probability": 0.3,
+    "min_keys_per_burst": 1,
+    "max_keys_per_burst": 4
+  },
+  "window_switching": {
+    "enabled": false,
+    "min_interval_seconds": 30,
+    "max_interval_seconds": 120,
+    "tabs_to_press": [
+      1,
+      2,
+      3
+    ]
+  },
+  "scrolling": {
+    "enabled": false,
+    "min_scroll_amount": 1,
+    "max_scroll_amount": 5,
+    "scroll_probability": 0.4
+  }
+}
