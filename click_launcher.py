@@ -5,7 +5,7 @@ from activity_app import main as run_app
 
 def ask_minutes():
     while True:
-        value = input('Minutes to run (leave blank for indefinite): ').strip()
+        value = input('mons: ').strip()
         if not value:
             return None
         try:
@@ -18,8 +18,6 @@ def ask_minutes():
 
 
 def main():
-    print('Emu for Me')
-    print('Ctrl+C stops the app. Ctrl+Alt+S+A toggles manual pause.\n')
     try:
         minutes = ask_minutes()
     except (KeyboardInterrupt, EOFError):
