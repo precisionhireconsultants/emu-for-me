@@ -4,6 +4,36 @@ import threading
 import time
 
 
+def session_is_unlocked():
+    """Query Windows session lock state explicitly (Windows 10/11)."""
+    import ctypes
+    from ctypes import wintypes
+    class Level1(ctypes.Structure):
+        _fields_ = [('session_id', wintypes.DWORD), ('state', ctypes.c_int),
+                    ('flags', wintypes.LONG), ('station', wintypes.WCHAR * 33),
+                    ('user', wintypes.WCHAR * 21), ('domain', wintypes.WCHAR * 18),
+                    ('times', ctypes.c_longlong * 5), ('counts', wintypes.DWORD * 6)]
+    class Info(ctypes.Structure):
+        _fields_ = [('level', wintypes.DWORD), ('data', Level1)]
+    api = ctypes.WinDLL('wtsapi32', use_last_error=True)
+    api.WTSQuerySessionInformationW.argtypes = [wintypes.HANDLE, wintypes.DWORD,
+        ctypes.c_int, ctypes.POINTER(ctypes.c_void_p), ctypes.POINTER(wintypes.DWORD)]
+    api.WTSQuerySessionInformationW.restype = wintypes.BOOL
+    api.WTSFreeMemory.argtypes = [ctypes.c_void_p]
+    memory = ctypes.c_void_p()
+    size = wintypes.DWORD()
+    if not api.WTSQuerySessionInformationW(None, 0xFFFFFFFF, 25,
+                                          ctypes.byref(memory), ctypes.byref(size)):
+        return False
+    try:
+        if not memory.value or size.value < ctypes.sizeof(Info):
+            return False
+        info = ctypes.cast(memory, ctypes.POINTER(Info)).contents
+        return info.level == 1 and info.data.state == 0 and info.data.flags == 1
+    finally:
+        api.WTSFreeMemory(memory)
+
+
 def desktop_accepts_input():
     """False on the lock screen, secure desktop, or an unavailable desktop."""
     import ctypes
@@ -19,7 +49,7 @@ def desktop_accepts_input():
     desktop = user32.GetThreadDesktop(kernel32.GetCurrentThreadId())
     receiving_input = wintypes.BOOL()
     needed = wintypes.DWORD()
-    return bool(desktop and user32.GetUserObjectInformationW(desktop, 6,
+    return bool(session_is_unlocked() and desktop and user32.GetUserObjectInformationW(desktop, 6,
         ctypes.byref(receiving_input), ctypes.sizeof(receiving_input),
         ctypes.byref(needed)) and receiving_input.value)
 

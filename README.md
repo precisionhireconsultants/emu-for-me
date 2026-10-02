@@ -82,6 +82,10 @@ so the foreground application can also receive it. It requires the default
 Locking Windows pauses simulation. Returning from the lock screen starts a
 fresh idle delay before resuming. Manual pause stays in effect across a lock.
 Secure desktops (such as UAC) and desktop-query failures also pause simulation.
+Lock detection uses an explicit Windows session-lock query in addition to the
+desktop check. Physical-input pause/resume, the shortcut, and actual lock/unlock
+were manually verified on the development PC; see `TESTING.md` for evidence
+and the acceptance checklist for a new PC.
 
 To quit completely, **press Ctrl+C in the app's console**, or **close that
 console window**. The runtime limit also exits automatically. If necessary,
@@ -105,5 +109,6 @@ Listener failure stops the app rather than allowing unmonitored simulation.
 
 References: https://pynput.readthedocs.io/en/latest/faq.html and
 https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-msllhookstruct
+and https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/ns-wtsapi32-wtsinfoex_level1_w
 
 Run checks with `.venv\Scripts\python.exe -m unittest discover -s tests -v`.

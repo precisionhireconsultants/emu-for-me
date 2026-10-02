@@ -1,5 +1,26 @@
 # Validation and remaining hardware checks
 
+## Hands-on verification on October 2, 2026
+
+With the user operating the actual keyboard, mouse, and Windows lock screen:
+
+- The observer resumed after the default 30-second idle delay.
+- Physical mouse/keyboard use paused it.
+- Ctrl+Alt+S+A enabled manual pause, which persisted beyond the idle delay.
+- Pressing the shortcut again released manual pause.
+- A real lock/unlock initially exposed a failed desktop-only lock detector.
+  The fix adds an explicit WTS session-lock query. Repeating the real test
+  recorded `desktop_available=False` while locked, true after unlock, and
+  `paused=False` only after the fresh idle delay.
+- The live mouse-only simulator moved the pointer. The user confirmed movement
+  stopped while working; the app log also recorded the pause. After no input,
+  the log recorded resume and further mouse actions.
+- The live test process was stopped afterward and verified absent.
+
+These are successful end-to-end checks on this PC. The same hardware acceptance
+checklist still applies on another PC. No claim is made about every display
+layout, keyboard, or policy environment.
+
 Passed source checks on the development Windows x64 PC, including a fresh
 ZIP extraction and newly created Python environment: 20 tests passed. Five
 optional native-bundle tests remain skipped after the execution-policy block.
@@ -30,9 +51,9 @@ its bootstrap process left the application child running. The shipped release
 was changed to a folder bundle to avoid that extra process. Forced exit of the
 rebuilt bundle remains unverified because Windows blocked its execution.
 
-These checks do not prove compatibility with every PC. Actual physical input,
-four-key keyboard rollover, real lock/unlock, display scaling, multiple-monitor
-layouts, and local security policy need verification on the target machine.
+These checks do not prove compatibility with every PC. Physical input,
+four-key keyboard rollover, lock/unlock, display scaling, multiple-monitor
+layouts, and local security policy need verification on each target machine.
 Synthetic input is deliberately ignored and cannot validate physical input.
 The current release targets Windows x64. It has not been tested on another PC.
 
