@@ -136,7 +136,7 @@ class UserActivity:
     def check(self):
         for listener in self.listeners:
             if not listener.is_alive():
-                raise RuntimeError('Input listener stopped; stopping simulation')
+                raise RuntimeError('Input listener stopped; stopping activity')
 
     def __exit__(self, *args):
         for listener in self.listeners:

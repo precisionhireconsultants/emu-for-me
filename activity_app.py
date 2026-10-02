@@ -1,4 +1,4 @@
-"""Desktop activity simulator adapted from Just A Human's Emu for Me article."""
+"""Desktop activity utility."""
 import argparse
 import copy
 import json
@@ -243,7 +243,7 @@ def main(argv=None):
         parser.error(str(exc))
     backend = None
     if (not args.dry_run or args.verify_input) and sys.platform != 'win32':
-        parser.error('Live simulation and input verification require Windows')
+        parser.error('Desktop input and verification require Windows')
     if not args.dry_run or args.verify_input:
         enable_windows_dpi_awareness()
     if not args.dry_run and not args.verify_input:
@@ -259,7 +259,7 @@ def main(argv=None):
             print(f'Runtime: {args.minutes:g} minutes.' if args.minutes is not None
                   else 'Runtime: indefinite (until stopped).', flush=True)
             if args.verify_input:
-                print('Verification only: no simulated input. Type/move, try the hotkey twice, then lock/unlock Windows.', flush=True)
+                print('Verification only: no generated input. Type/move, try the hotkey twice, then lock/unlock Windows.', flush=True)
                 end = time.monotonic() + args.minutes * 60 if args.minutes is not None else math.inf
                 previous = None
                 while time.monotonic() < end:

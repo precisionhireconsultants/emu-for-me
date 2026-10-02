@@ -1,5 +1,7 @@
 """Console prompt for the double-click launcher."""
 import math
+import os
+from contextlib import redirect_stdout
 from activity_app import main as run_app
 
 
@@ -23,7 +25,8 @@ def main():
     except (KeyboardInterrupt, EOFError):
         print('\nCancelled.')
         return
-    run_app([] if minutes is None else [str(minutes)])
+    with open(os.devnull, 'w') as output, redirect_stdout(output):
+        run_app([] if minutes is None else [str(minutes)])
 
 
 if __name__ == '__main__':

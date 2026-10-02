@@ -112,7 +112,7 @@ class Checks(unittest.TestCase):
         now[0] = 131
         self.assertFalse(monitor.busy())
 
-    def test_busy_user_gets_no_simulated_input(self):
+    def test_busy_user_gets_no_generated_input(self):
         backend = Mock()
         monitor = UserActivity(30)
         app.run(app.DEFAULT_CONFIG, .0005, backend, monitor=monitor)
@@ -149,7 +149,7 @@ class Checks(unittest.TestCase):
         self.assertTrue(all(-1919 <= x <= -2 and 1 <= y <= 1078 and 0 < delay <= .02
                             for x, y, delay in path))
 
-    def test_simulated_key_released_when_listener_fails(self):
+    def test_generated_key_released_when_listener_fails(self):
         config = self.load({'mouse': {'enabled': False}, 'keyboard': {
             'enabled': True, 'key_press_probability': 1}})
         monitor, backend = Mock(), Mock()

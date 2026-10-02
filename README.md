@@ -14,8 +14,9 @@ not claim a license for the original author's work.
 **Double-click `AAStart-Emu.bat`** to open a console that asks for minutes.
 Enter a number (for example `60`) and press Enter, or press Enter with a blank
 answer to run indefinitely. Invalid numbers are rejected and the prompt repeats.
-Run `setup.bat` once before first use. The console stays open after the app ends
-so you can read its completion message. All pause and stop controls still apply.
+Run `setup.bat` once before first use. The double-click launcher shows only the
+minutes prompt during normal use and closes after completion. Errors remain
+visible. All pause and stop controls still apply.
 
 Run `setup.bat`, then `start_app.bat 5` for five minutes.
 Setup stays open on both success and failure and saves diagnostics in

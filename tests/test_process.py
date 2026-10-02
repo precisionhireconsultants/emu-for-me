@@ -75,10 +75,10 @@ class ProcessChecks(unittest.TestCase):
         self.assertIn('Resuming:', result.stdout)
 
     @unittest.skipUnless(sys.platform == 'win32', 'Windows listeners')
-    def test_verification_mode_emits_status_without_simulation(self):
+    def test_verification_mode_emits_status_without_generated_input(self):
         result = self.launch('.005', '--verify-input')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('Verification only: no simulated input', result.stdout)
+        self.assertIn('Verification only: no generated input', result.stdout)
         self.assertIn('manual_pause=False', result.stdout)
 
 

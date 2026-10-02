@@ -98,4 +98,5 @@ class SetupChecks(unittest.TestCase):
             capture_output=True, timeout=20)
         self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
         self.assertIn('mons:', completed.stdout)
-        self.assertIn('Runtime finished. Stopped.', completed.stdout)
+        self.assertNotIn('Runtime:', completed.stdout)
+        self.assertNotIn('Paused:', completed.stdout)
