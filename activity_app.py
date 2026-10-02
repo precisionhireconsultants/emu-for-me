@@ -5,9 +5,11 @@ import json
 import math
 import random
 import time
+from contextlib import nullcontext
 from pathlib import Path
 
 DEFAULT_CONFIG = {
+    'user_activity': {'enabled': True, 'resume_after_idle_seconds': 30},
     'activity': {'min_delay_seconds': 2, 'max_delay_seconds': 8,
                  'burst_duration_minutes': 3, 'quiet_duration_seconds': 60},
     'mouse': {'enabled': True},
@@ -62,16 +64,38 @@ def load_config(path):
     return config
 
 
-def run(config, minutes, backend=None, dry_run=False):
+def run(config, minutes, backend=None, dry_run=False, monitor=None):
     deadline = time.monotonic() + minutes * 60
     burst_end = time.monotonic() + config['activity']['burst_duration_minutes'] * 60
     switch = config['window_switching']
     next_switch = time.monotonic() + random.uniform(switch['min_interval_seconds'], switch['max_interval_seconds'])
 
     def pause(seconds):
-        time.sleep(max(0, min(seconds, deadline - time.monotonic())))
+        until = min(time.monotonic() + seconds, deadline)
+        while time.monotonic() < until:
+            if monitor:
+                monitor.check()
+                if monitor.busy():
+                    break
+            time.sleep(max(0, min(.02, until - time.monotonic())))
 
+    def interrupted():
+        return time.monotonic() >= deadline or (monitor is not None and monitor.busy())
+
+    paused = False
     while time.monotonic() < deadline:
+        if monitor:
+            monitor.check()
+            if monitor.busy():
+                if not paused:
+                    print('Paused: waiting for you to finish using the keyboard/mouse.', flush=True)
+                paused = True
+                time.sleep(min(.02, max(0, deadline - time.monotonic())))
+                continue
+            if paused:
+                print('Resuming: idle period reached.', flush=True)
+                burst_end = time.monotonic() + config['activity']['burst_duration_minutes'] * 60
+                paused = False
         if time.monotonic() >= burst_end:
             pause(config['activity']['quiet_duration_seconds'])
             burst_end = time.monotonic() + config['activity']['burst_duration_minutes'] * 60
@@ -87,17 +111,30 @@ def run(config, minutes, backend=None, dry_run=False):
         if action == 'window_switching':
             next_switch = time.monotonic() + random.uniform(switch['min_interval_seconds'], switch['max_interval_seconds'])
         if not dry_run:
+            if interrupted():
+                continue
             if action == 'mouse':
                 width, height = backend.size()
                 x, y = backend.position()
                 angle = random.uniform(0, 2 * math.pi)
                 distance = random.randint(100, 300)
-                backend.moveTo(max(1, min(width - 2, x + distance * math.cos(angle))),
-                               max(1, min(height - 2, y + distance * math.sin(angle))),
-                               duration=.3, tween=backend.easeInOutCubic)
+                target_x = max(1, min(width - 2, x + distance * math.cos(angle)))
+                target_y = max(1, min(height - 2, y + distance * math.sin(angle)))
+                for step in range(1, 16):
+                    if interrupted():
+                        break
+                    backend.failSafeCheck()
+                    progress = backend.easeInOutCubic(step / 15)
+                    # SetCursorPos is not marked as injected. Use synthetic
+                    # Windows mouse events so our listener ignores our moves.
+                    import ctypes
+                    ctypes.windll.user32.mouse_event(0x8001,
+                        int((x + (target_x - x) * progress) * 65535 / (width - 1)),
+                        int((y + (target_y - y) * progress) * 65535 / (height - 1)), 0, 0)
+                    pause(.02)
             elif action == 'keyboard' and random.random() < config[action]['key_press_probability']:
                 for _ in range(random.randint(config[action]['min_keys_per_burst'], config[action]['max_keys_per_burst'])):
-                    if time.monotonic() >= deadline:
+                    if interrupted():
                         break
                     backend.press(random.choices(KEYS, weights=WEIGHTS)[0])
                     pause(random.uniform(.2, .8))
@@ -106,7 +143,11 @@ def run(config, minutes, backend=None, dry_run=False):
             elif action == 'window_switching':
                 backend.keyDown('alt')
                 try:
-                    backend.press('tab', presses=random.choice(switch['tabs_to_press']), interval=.15)
+                    for _ in range(random.choice(switch['tabs_to_press'])):
+                        if interrupted():
+                            break
+                        backend.press('tab')
+                        pause(.15)
                 finally:
                     backend.keyUp('alt')
         pause(random.uniform(config['activity']['min_delay_seconds'], config['activity']['max_delay_seconds']))
@@ -128,9 +169,13 @@ def main():
     if not args.dry_run:
         import pyautogui as backend
         backend.FAILSAFE = True
-        backend.PAUSE = .1
+        backend.PAUSE = 0
     try:
-        run(config, args.minutes, backend, args.dry_run)
+        from user_activity import UserActivity
+        settings = config['user_activity']
+        context = UserActivity(settings['resume_after_idle_seconds']) if settings['enabled'] and not args.dry_run else nullcontext(None)
+        with context as monitor:
+            run(config, args.minutes, backend, args.dry_run, monitor)
     except KeyboardInterrupt:
         print('Stopped.')
     except Exception as exc:

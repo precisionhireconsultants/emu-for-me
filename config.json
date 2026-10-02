@@ -1,4 +1,8 @@
 {
+  "user_activity": {
+    "enabled": true,
+    "resume_after_idle_seconds": 30
+  },
   "activity": {
     "min_delay_seconds": 2,
     "max_delay_seconds": 8,
