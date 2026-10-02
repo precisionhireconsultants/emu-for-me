@@ -88,12 +88,12 @@ def run(config, minutes, backend=None, dry_run=False, monitor=None):
             monitor.check()
             if monitor.busy():
                 if not paused:
-                    print('Paused: waiting for you to finish using the keyboard/mouse.', flush=True)
+                    print('Paused: user input, manual pause, or Windows lock. Ctrl+Alt+S+A toggles manual pause.', flush=True)
                 paused = True
                 time.sleep(min(.02, max(0, deadline - time.monotonic())))
                 continue
             if paused:
-                print('Resuming: idle period reached.', flush=True)
+                print('Resuming: desktop available and idle period reached.', flush=True)
                 burst_end = time.monotonic() + config['activity']['burst_duration_minutes'] * 60
                 paused = False
         if time.monotonic() >= burst_end:
@@ -175,6 +175,7 @@ def main():
         settings = config['user_activity']
         context = UserActivity(settings['resume_after_idle_seconds']) if settings['enabled'] and not args.dry_run else nullcontext(None)
         with context as monitor:
+            print('Stop: Ctrl+C in this console, or close its window. Pause/resume: Ctrl+Alt+S+A.', flush=True)
             run(config, args.minutes, backend, args.dry_run, monitor)
     except KeyboardInterrupt:
         print('Stopped.')

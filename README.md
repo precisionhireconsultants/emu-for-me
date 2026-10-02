@@ -22,6 +22,21 @@ configuration. The simulator does not click.
 
 ## Automatic pause while you work (Windows)
 
+Hold **Ctrl+Alt+S+A** together to toggle manual pause. Press the chord again
+to enable resuming after the idle delay. Holding the chord or key repeat does
+not toggle repeatedly. The shortcut is observed globally and is not suppressed,
+so the foreground application can also receive it. It requires the default
+`user_activity.enabled: true` setting and is unavailable in dry-run mode.
+
+Locking Windows pauses simulation. Returning from the lock screen starts a
+fresh idle delay before resuming. Manual pause stays in effect across a lock.
+Secure desktops (such as UAC) and desktop-query failures also pause simulation.
+
+To quit completely, **press Ctrl+C in the app's console**, or **close that
+console window**. The runtime limit also exits automatically. If necessary,
+use Task Manager's Details tab to end the app's specific `python.exe` process;
+do not end unrelated Python processes. No tray icon or settings window is used.
+
 Physical keyboard input, pointer movement, mouse buttons, and scrolling pause
 the simulation. It resumes after 30 seconds without physical input. Change
 `user_activity.resume_after_idle_seconds` in `config.json` to adjust that delay.

@@ -9,6 +9,58 @@ import activity_app as app
 
 
 class Checks(unittest.TestCase):
+    def chord(self, monitor, message, keys=(0xA2, 0xA4, 0x53, 0x41), flags=0):
+        for key in keys:
+            monitor.keyboard_filter(message, SimpleNamespace(flags=flags, vkCode=key))
+
+    def test_hotkey_toggles_once_per_chord(self):
+        monitor = UserActivity(0)
+        self.chord(monitor, 0x100)
+        self.assertTrue(monitor.manual_paused)
+        self.chord(monitor, 0x100)
+        self.assertTrue(monitor.manual_paused)
+        self.chord(monitor, 0x101)
+        self.assertTrue(monitor.busy())
+        self.chord(monitor, 0x100)
+        self.chord(monitor, 0x101)
+        self.assertFalse(monitor.manual_paused)
+        self.assertFalse(monitor.busy())
+
+    def test_partial_and_injected_hotkeys_do_not_toggle(self):
+        monitor = UserActivity(0)
+        self.chord(monitor, 0x100, keys=(0xA3, 0xA5, 0x53))
+        self.assertFalse(monitor.manual_paused)
+        self.chord(monitor, 0x100, flags=0x10)
+        self.assertFalse(monitor.manual_paused)
+        self.chord(monitor, 0x100, keys=(0x41,))
+        self.assertTrue(monitor.manual_paused)
+
+    def test_lock_pauses_and_unlock_restarts_idle_delay(self):
+        now, available = [0], [True]
+        monitor = UserActivity(30, clock=lambda: now[0],
+                               desktop_probe=lambda: available[0])
+        now[0] = 31
+        self.assertFalse(monitor.busy())
+        available[0] = False
+        now[0] = 100
+        self.assertTrue(monitor.busy())
+        available[0] = True
+        self.assertTrue(monitor.busy())
+        now[0] = 129
+        self.assertTrue(monitor.busy())
+        now[0] = 130
+        self.assertFalse(monitor.busy())
+
+    def test_lock_clears_stale_keys_and_preserves_manual_pause(self):
+        available = [False]
+        monitor = UserActivity(0, desktop_probe=lambda: available[0])
+        self.chord(monitor, 0x100)
+        self.assertTrue(monitor.busy())
+        self.assertFalse(monitor.held)
+        available[0] = True
+        self.assertTrue(monitor.busy())
+        self.assertTrue(monitor.manual_paused)
+
     def test_physical_input_pauses_and_idle_resumes(self):
         now = [0]
         monitor = UserActivity(30, clock=lambda: now[0])
