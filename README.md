@@ -18,6 +18,8 @@ Run `setup.bat` once before first use. The console stays open after the app ends
 so you can read its completion message. All pause and stop controls still apply.
 
 Run `setup.bat`, then `start_app.bat 5` for five minutes.
+Setup stays open on both success and failure and saves diagnostics in
+`setup.log`. If Python is missing, it displays installation instructions.
 Use `start_app.bat 60` for sixty minutes, or `start_app.bat` with no duration
 to run indefinitely until you stop it. Minutes can be fractional, such as
 `start_app.bat 0.5` for thirty seconds. Zero, negative, and nonfinite durations
