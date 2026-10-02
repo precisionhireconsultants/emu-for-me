@@ -193,14 +193,14 @@ def run(config, minutes, backend=None, dry_run=False, monitor=None):
         pause(random.uniform(config['activity']['min_delay_seconds'], config['activity']['max_delay_seconds']))
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('minutes', type=float, nargs='?', default=None,
                         help='Run for this many minutes; omit to run indefinitely')
     parser.add_argument('--config', type=Path, default=app_directory() / 'config.json')
     parser.add_argument('--dry-run', action='store_true', help='Log actions without desktop input')
     parser.add_argument('--verify-input', action='store_true', help='Observe pause/hotkey/lock behavior without sending input')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if args.minutes is not None and (not math.isfinite(args.minutes) or args.minutes <= 0):
         parser.error('minutes must be a positive finite number')
     try:
