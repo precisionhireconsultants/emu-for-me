@@ -138,9 +138,26 @@ class Checks(unittest.TestCase):
         def user_returns(*args):
             monitor.idle_seconds = 30
             monitor.record()
-        backend.press.side_effect = user_returns
+        backend.keyDown.side_effect = user_returns
         app.run(config, .001, backend, monitor=monitor)
-        self.assertEqual(backend.press.call_count, 1)
+        self.assertEqual(backend.keyDown.call_count, 1)
+        self.assertEqual(backend.keyUp.call_count, 1)
+
+    def test_curved_mouse_stroke_stays_in_bounds_and_reaches_target(self):
+        path = list(app.mouse_path(-1800, 100, -1650, 220, (-1920, 0, 0, 1080)))
+        self.assertEqual(path[-1][:2], (-1650, 220))
+        self.assertTrue(all(-1919 <= x <= -2 and 1 <= y <= 1078 and 0 < delay <= .02
+                            for x, y, delay in path))
+
+    def test_simulated_key_released_when_listener_fails(self):
+        config = self.load({'mouse': {'enabled': False}, 'keyboard': {
+            'enabled': True, 'key_press_probability': 1}})
+        monitor, backend = Mock(), Mock()
+        monitor.busy.return_value = False
+        monitor.check.side_effect = [None, RuntimeError('listener failed')]
+        with self.assertRaises(RuntimeError):
+            app.run(config, .01, backend, monitor=monitor)
+        backend.keyUp.assert_called_once_with(backend.keyDown.call_args.args[0])
 
     def load(self, data):
         with tempfile.TemporaryDirectory() as directory:

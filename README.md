@@ -11,7 +11,7 @@ not claim a license for the original author's work.
 
 ## Windows
 
-**Double-click `Start Emu.bat`** to open a console that asks for minutes.
+**Double-click `AAStart-Emu.bat`** to open a console that asks for minutes.
 Enter a number (for example `60`) and press Enter, or press Enter with a blank
 answer to run indefinitely. Invalid numbers are rejected and the prompt repeats.
 Run `setup.bat` once before first use. The console stays open after the app ends
@@ -82,6 +82,14 @@ Only mouse movement is enabled by default. To enable other actions, edit
 `config.json`. Typing changes the focused application; window switching and
 scrolling also affect the desktop. Run with documents saved and use deliberate
 configuration. The simulator does not click.
+
+Mouse strokes follow gently curved paths with acceleration/deceleration,
+varied distances and durations, and small intermediate variations. Typing uses
+varied key-hold times, uneven gaps, and occasional longer pauses between keys.
+These are naturalistic timing variations, not meaningful human-written text.
+Typing remains disabled by default because characters modify the focused app.
+All strokes stay on the current monitor and can be interrupted by real input;
+simulated keys are released even if typing is interrupted.
 
 ## Automatic pause while you work (Windows)
 

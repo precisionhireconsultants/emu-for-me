@@ -61,6 +61,37 @@ def normalize_point(x, y, left, top, width, height):
             round((y - top) * 65535 / max(1, height - 1)))
 
 
+def mouse_path(x, y, target_x, target_y, bounds):
+    """A gently curved stroke with variable duration and eased speed."""
+    left, top, right, bottom = bounds
+    dx, dy = target_x - x, target_y - y
+    distance = math.hypot(dx, dy)
+    bend = random.uniform(-.22, .22)
+    control1 = (x + dx * .3 - dy * bend, y + dy * .3 + dx * bend)
+    control2 = (x + dx * .7 - dy * bend * .6, y + dy * .7 + dx * bend * .6)
+    duration = max(.2, min(1.2, distance / random.uniform(300, 650) + random.uniform(.08, .2)))
+    steps = max(10, math.ceil(duration / .02))
+    for step in range(1, steps + 1):
+        progress = step / steps
+        t = progress * progress * (3 - 2 * progress)
+        u = 1 - t
+        tremor = math.sin(math.pi * progress) * .5
+        px = u**3*x + 3*u*u*t*control1[0] + 3*u*t*t*control2[0] + t**3*target_x
+        py = u**3*y + 3*u*u*t*control1[1] + 3*u*t*t*control2[1] + t**3*target_y
+        if step < steps:
+            px += random.gauss(0, tremor)
+            py += random.gauss(0, tremor)
+        yield (max(left + 1, min(right - 2, px)),
+               max(top + 1, min(bottom - 2, py)), duration / steps)
+
+
+def typing_gap(index):
+    gap = max(.06, min(.65, random.lognormvariate(-1.8, .4)))
+    if index == 0 or random.random() < .15:
+        gap += random.uniform(.15, .6)
+    return gap
+
+
 def load_config(path):
     config = copy.deepcopy(DEFAULT_CONFIG)
     if path.exists():
@@ -154,30 +185,33 @@ def run(config, minutes, backend=None, dry_run=False, monitor=None):
                 x, y = backend.position()
                 left, top, right, bottom = monitor_bounds(x, y)
                 angle = random.uniform(0, 2 * math.pi)
-                distance = random.randint(100, 300)
+                distance = random.randint(25, 120) if random.random() < .65 else random.randint(120, 320)
                 target_x = max(left + 1, min(right - 2, x + distance * math.cos(angle)))
                 target_y = max(top + 1, min(bottom - 2, y + distance * math.sin(angle)))
-                for step in range(1, 16):
+                for px, py, delay in mouse_path(x, y, target_x, target_y, (left, top, right, bottom)):
                     if interrupted():
                         break
                     backend.failSafeCheck()
-                    progress = backend.easeInOutCubic(step / 15)
                     # SetCursorPos is not marked as injected. Use synthetic
                     # Windows mouse events so our listener ignores our moves.
                     import ctypes
                     user32 = ctypes.windll.user32
-                    nx, ny = normalize_point(x + (target_x - x) * progress,
-                        y + (target_y - y) * progress,
+                    nx, ny = normalize_point(px, py,
                         user32.GetSystemMetrics(76), user32.GetSystemMetrics(77),
                         user32.GetSystemMetrics(78), user32.GetSystemMetrics(79))
                     user32.mouse_event(0xC001, nx, ny, 0, 0)
-                    pause(.02)
+                    pause(delay)
             elif action == 'keyboard' and random.random() < config[action]['key_press_probability']:
-                for _ in range(random.randint(config[action]['min_keys_per_burst'], config[action]['max_keys_per_burst'])):
+                for index in range(random.randint(config[action]['min_keys_per_burst'], config[action]['max_keys_per_burst'])):
                     if interrupted():
                         break
-                    backend.press(random.choices(KEYS, weights=WEIGHTS)[0])
-                    pause(random.uniform(.2, .8))
+                    key = random.choices(KEYS, weights=WEIGHTS)[0]
+                    backend.keyDown(key)
+                    try:
+                        pause(random.uniform(.035, .11))
+                    finally:
+                        backend.keyUp(key)
+                    pause(typing_gap(index))
             elif action == 'scrolling' and random.random() < config[action]['scroll_probability']:
                 backend.scroll(random.choice([-1, 1]) * random.randint(config[action]['min_scroll_amount'], config[action]['max_scroll_amount']))
             elif action == 'window_switching':
