@@ -1,5 +1,20 @@
 # Validation and remaining hardware checks
 
+## Isolated installer regression tests
+
+`tests/test_setup.py` copies the app into new disposable directories, controls
+PATH and pip settings, creates a brand-new venv, and tests actual batch scripts.
+The failure cases include no Python, missing requirements, unavailable packages,
+saved error diagnostics, and waiting for a key on double-click failure. The
+success case installs without pip caching, launches from an unrelated working
+directory, then feeds minutes through the actual double-click batch launcher.
+The timed launcher test exits before the idle delay, so it sends no desktop input.
+
+Local isolation is at the folder/process/Python-environment level, not a VM.
+Windows Sandbox is unavailable on this development PC. GitHub's installation
+workflow provides separate Windows runners for Python 3.11 and 3.14. Physical
+input and lock/unlock still use the manual checklist on the actual target PC.
+
 ## Optional timer update
 
 After changing the omitted duration to indefinite, 24 source tests passed;

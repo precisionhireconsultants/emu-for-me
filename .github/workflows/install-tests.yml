@@ -1,0 +1,27 @@
+name: Isolated Windows installation
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  installation:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Test fresh setup and failure handling
+        env:
+          EMU_TEST_FRESH_INSTALL: '1'
+        run: python -m unittest discover -s tests -p test_setup.py -v

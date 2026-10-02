@@ -134,3 +134,12 @@ https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-msllhooks
 and https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/ns-wtsapi32-wtsinfoex_level1_w
 
 Run checks with `.venv\Scripts\python.exe -m unittest discover -s tests -v`.
+
+Double-click `test_installation.bat` to run the full installation checks in
+disposable folders with spaces in their names, controlled PATH, no copied
+virtual environment, and no pip cache. This downloads fresh packages and
+tests missing Python, incomplete extraction, unavailable packages, readable
+failure logs, the default pause on failure, and a successful double-click launch.
+GitHub runs these checks on fresh Windows runners with Python 3.11 and 3.14
+on every push and pull request. These checks isolate files and Python packages;
+they do not emulate every Windows policy, device, or operating-system edition.
