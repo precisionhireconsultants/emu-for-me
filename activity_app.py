@@ -102,7 +102,7 @@ def load_config(path):
 
 
 def run(config, minutes, backend=None, dry_run=False, monitor=None):
-    deadline = time.monotonic() + minutes * 60
+    deadline = time.monotonic() + minutes * 60 if minutes is not None else math.inf
     burst_end = time.monotonic() + config['activity']['burst_duration_minutes'] * 60
     switch = config['window_switching']
     next_switch = time.monotonic() + random.uniform(switch['min_interval_seconds'], switch['max_interval_seconds'])
@@ -195,12 +195,13 @@ def run(config, minutes, backend=None, dry_run=False, monitor=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('minutes', type=float, nargs='?', default=5)
+    parser.add_argument('minutes', type=float, nargs='?', default=None,
+                        help='Run for this many minutes; omit to run indefinitely')
     parser.add_argument('--config', type=Path, default=app_directory() / 'config.json')
     parser.add_argument('--dry-run', action='store_true', help='Log actions without desktop input')
     parser.add_argument('--verify-input', action='store_true', help='Observe pause/hotkey/lock behavior without sending input')
     args = parser.parse_args()
-    if not math.isfinite(args.minutes) or args.minutes <= 0:
+    if args.minutes is not None and (not math.isfinite(args.minutes) or args.minutes <= 0):
         parser.error('minutes must be a positive finite number')
     try:
         config = load_config(args.config)
@@ -221,9 +222,11 @@ def main():
         context = UserActivity(settings['resume_after_idle_seconds']) if args.verify_input or (settings['enabled'] and not args.dry_run) else nullcontext(None)
         with context as monitor:
             print('Stop: Ctrl+C in this console, or close its window. Pause/resume: Ctrl+Alt+S+A.', flush=True)
+            print(f'Runtime: {args.minutes:g} minutes.' if args.minutes is not None
+                  else 'Runtime: indefinite (until stopped).', flush=True)
             if args.verify_input:
                 print('Verification only: no simulated input. Type/move, try the hotkey twice, then lock/unlock Windows.', flush=True)
-                end = time.monotonic() + args.minutes * 60
+                end = time.monotonic() + args.minutes * 60 if args.minutes is not None else math.inf
                 previous = None
                 while time.monotonic() < end:
                     monitor.check()
@@ -235,6 +238,8 @@ def main():
                     time.sleep(.02)
             else:
                 run(config, args.minutes, backend, args.dry_run, monitor)
+            if args.minutes is not None:
+                print('Runtime finished. Stopped.', flush=True)
     except KeyboardInterrupt:
         print('Stopped.')
     except Exception as exc:

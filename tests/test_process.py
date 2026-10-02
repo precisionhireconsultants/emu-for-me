@@ -11,6 +11,27 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ProcessChecks(unittest.TestCase):
+    def test_no_minutes_runs_until_terminated(self):
+        process = subprocess.Popen([sys.executable, str(ROOT / 'activity_app.py'),
+            '--dry-run'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            self.assertIn('Stop:', process.stdout.readline())
+            self.assertIn('Runtime: indefinite', process.stdout.readline())
+            self.assertIsNone(process.poll())
+            process.terminate()
+            process.communicate(timeout=10)
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.communicate(timeout=10)
+
+    @unittest.skipUnless(sys.platform == 'win32', 'Windows listeners')
+    def test_timer_expires_even_while_paused(self):
+        result = self.launch('.005')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Paused:', result.stdout)
+        self.assertIn('Runtime finished. Stopped.', result.stdout)
+
     def launch(self, *args):
         with tempfile.TemporaryDirectory(prefix='emu process ') as directory:
             return subprocess.run([sys.executable, str(ROOT / 'activity_app.py'), *args],

@@ -1,5 +1,14 @@
 # Validation and remaining hardware checks
 
+## Optional timer update
+
+After changing the omitted duration to indefinite, 24 source tests passed;
+five optional native-bundle tests remain skipped. New checks cover no-duration
+CLI startup, indefinite operation beyond the former five-minute limit with
+a controlled clock, and actual timed exit while the app is paused. Existing
+pause/resume, shortcut, lock-state, process, and configuration checks passed.
+The native bundle has not been rebuilt or verified for this update; use source.
+
 ## Hands-on verification on October 2, 2026
 
 With the user operating the actual keyboard, mouse, and Windows lock screen:

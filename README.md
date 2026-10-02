@@ -5,13 +5,19 @@ https://medium.com/@JustaH/emu-for-me-72a803d4a21f
 
 This implementation retains randomized mouse movement, weighted typing,
 scrolling, window switching, and activity/quiet periods. It adds validated
-configuration, a bounded runtime, dry-run mode, visible errors, and reliable
+configuration, optional timed runs, dry-run mode, visible errors, and reliable
 Alt-key release. No license was supplied by the article; this repository does
 not claim a license for the original author's work.
 
 ## Windows
 
 Run `setup.bat`, then `start_app.bat 5` for five minutes.
+Use `start_app.bat 60` for sixty minutes, or `start_app.bat` with no duration
+to run indefinitely until you stop it. Minutes can be fractional, such as
+`start_app.bat 0.5` for thirty seconds. Zero, negative, and nonfinite durations
+are rejected. A specified duration includes paused/locked time and exits
+automatically, even when the app is manually paused. All pause/resume,
+shortcut, and lock-screen behavior is the same in both runtime modes.
 Run `start_app.bat 0.1 --dry-run` to log planned actions without sending input.
 Stop with Ctrl+C or close the console window. The mouse-corner failsafe is
 checked during simulated mouse movement; moving there while already paused
@@ -33,7 +39,7 @@ packaged behavior is not validated; use the source route above. The information
 below describes its intended deployment, rather than a verified release.
 
 The experimental bundle is `releases/EmuForMe-Windows-x64.zip`. Extract the entire
-folder on a Windows 10/11 x64 PC, then run `portable_start.bat` (five minutes
+folder on a Windows 10/11 x64 PC, then run `portable_start.bat` (indefinite
 by default) or `EmuForMe.exe 60` from a console for sixty minutes. Python,
 Git, this computer's D: drive, and administrator rights are not required.
 Keep `config.json` and the `_internal` dependency folder next to the executable.

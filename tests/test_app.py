@@ -9,6 +9,20 @@ import activity_app as app
 
 
 class Checks(unittest.TestCase):
+    def test_omitted_minutes_passes_indefinite_runtime(self):
+        with patch('sys.argv', ['activity_app.py', '--dry-run']), patch.object(app, 'run') as run:
+            app.main()
+        self.assertIsNone(run.call_args.args[1])
+
+    def test_indefinite_run_does_not_expire_after_five_minutes(self):
+        monitor = Mock()
+        monitor.busy.return_value = True
+        monitor.check.side_effect = [None, KeyboardInterrupt()]
+        with patch.object(app.time, 'monotonic', side_effect=[0, 0, 0, 0, 400, 400]), \
+             patch.object(app.time, 'sleep'), self.assertRaises(KeyboardInterrupt):
+            app.run(app.DEFAULT_CONFIG, None, Mock(), monitor=monitor)
+        self.assertEqual(monitor.check.call_count, 2)
+
     def test_virtual_coordinates_include_negative_monitor_positions(self):
         self.assertEqual(app.normalize_point(-1920, 0, -1920, 0, 3840, 1080), (0, 0))
         self.assertEqual(app.normalize_point(1919, 1079, -1920, 0, 3840, 1080), (65535, 65535))
