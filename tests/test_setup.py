@@ -74,9 +74,13 @@ class SetupChecks(unittest.TestCase):
         self.env['PIP_NO_INDEX'] = '1'
         result = self.setup()
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-        self.assertIn('Installer upgrade failed', result.stdout)
-        self.assertIn('Installer upgrade failed',
-                      (self.folder / 'setup.log').read_text())
+        log = (self.folder / 'setup.log').read_text()
+        expected = ('ERROR: Installer upgrade failed', 'ERROR: Dependency installation failed')
+        matched = [message for message in expected if message in result.stdout]
+        self.assertEqual(len(matched), 1, result.stdout + result.stderr)
+        self.assertIn(matched[0], log)
+        self.assertIn('Setup failed', result.stdout)
+        self.assertNotIn('Setup complete', result.stdout)
 
     @unittest.skipUnless(FRESH, 'Set EMU_TEST_FRESH_INSTALL=1 for fresh dependency tests')
     def test_fresh_install_and_launcher_from_other_directory(self):
