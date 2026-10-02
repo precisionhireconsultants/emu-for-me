@@ -58,6 +58,11 @@ echo Check folder write access and that your Python installation includes venv.
 exit /b 1
 
 :dependencies
+".venv\Scripts\python.exe" -m pip install --upgrade pip==26.2.1
+if errorlevel 1 (
+    echo ERROR: Installer upgrade failed. See the pip error above.
+    exit /b 1
+)
 ".venv\Scripts\python.exe" -m pip install -r requirements.txt
 if errorlevel 1 (
     echo ERROR: Dependency installation failed. See the pip error above.

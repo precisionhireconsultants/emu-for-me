@@ -21,6 +21,8 @@ visible. All pause and stop controls still apply.
 Run `setup.bat`, then `start_app.bat 5` for five minutes.
 Setup stays open on both success and failure and saves diagnostics in
 `setup.log`. If Python is missing, it displays installation instructions.
+Setup updates only this app's local pip installer before installing packages.
+See `SECURITY_REVIEW.md` for the dependency audit and remaining security limits.
 Setup explicitly tries Python 3.11, then 3.12, 3.13, and 3.14 through the
 Windows Python launcher before checking its generic Python 3 choice and PATH.
 This works even when your default Python is 3.8. Install 3.11 alongside 3.8
